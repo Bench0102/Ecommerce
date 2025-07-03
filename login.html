@@ -3,57 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - My eCommerce Store</title>
+    <title>Login / Register - My eCommerce Store</title>
     <link rel="stylesheet" href="style.css">
     <!--
-        TODO: Add Firebase SDKs here (before your custom scripts)
-        You need at least:
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-        (Firestore might not be strictly needed for login page, but auth.js uses it for firebase.app())
-        Ensure you use a version compatible with your code (v8.x.x used in JS files)
+        Firebase SDKs will now be imported as ES modules in the JavaScript files.
     -->
 </head>
 <body>
     <header>
-        <h1>Login</h1>
+        <h1>My eCommerce Store</h1>
         <nav>
             <a href="index.html">Home</a>
+            <a href="admin.html">Admin</a>
+            <button id="cart-button-header" class="button button-light">
+                Cart <span id="cart-count" style="display: none;">0</span>
+            </button>
+            <button id="login-button-header" class="button button-primary">Login</button>
+            <span id="user-status">Logged out</span>
         </nav>
     </header>
 
     <main>
-        <section id="login-section">
-            <h2>Sign In</h2>
-            <p>Please sign in with your Google account to continue.</p>
-            <button id="google-signin-button" class="button button-primary">Sign In with Google</button>
-            <p id="login-status-message"></p> <!-- This will be styled by JS based on success/error -->
-        </section>
+        <div id="auth-container">
+            <!-- Login Form -->
+            <section id="login-section" class="auth-form-section">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <div>
+                        <label for="login-email">Email:</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div>
+                        <label for="login-password">Password:</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="button button-primary">Login</button>
+                </form>
+                <p class="auth-toggle-message">
+                    Don't have an account? <a href="#" id="show-register-link">Register here</a>
+                </p>
+                <div class="social-login-divider">
+                    <span>OR</span>
+                </div>
+                <button id="google-signin-button" class="button button-light google-button">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon">
+                    Sign In with Google
+                </button>
+                <div id="login-message-area" class="message-area auth-message-area"></div>
+            </section>
+
+            <!-- Registration Form (Initially Hidden) -->
+            <section id="register-section" class="auth-form-section" style="display: none;">
+                <h2>Register</h2>
+                <form id="register-form">
+                    <div>
+                        <label for="register-email">Email:</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div>
+                        <label for="register-password">Password (min. 6 characters):</label>
+                        <input type="password" id="register-password" required minlength="6">
+                    </div>
+                    <div>
+                        <label for="register-confirm-password">Confirm Password:</label>
+                        <input type="password" id="register-confirm-password" required>
+                    </div>
+                    <button type="submit" class="button button-success">Register</button>
+                </form>
+                <p class="auth-toggle-message">
+                    Already have an account? <a href="#" id="show-login-link">Login here</a>
+                </p>
+                <div id="register-message-area" class="message-area auth-message-area"></div>
+            </section>
+        </div>
     </main>
 
     <footer>
         <p>&copy; 2023 My eCommerce Store</p>
     </footer>
 
-    <script src="firebase-config.js"></script>
-    <script src="auth.js"></script>
-    <script src="cart.js"></script> <!-- Include cart.js for header consistency -->
-    <script>
-        // Small script to redirect if user is already logged in,
-        // or to initialize login button functionality from auth.js
-        document.addEventListener('DOMContentLoaded', () => {
-            // auth.js should ideally handle this, but as a quick setup:
-            const googleSignInButton = document.getElementById('google-signin-button');
-            if (googleSignInButton && window.authModule && typeof window.authModule.signInWithGoogle === 'function') {
-                googleSignInButton.addEventListener('click', window.authModule.signInWithGoogle);
-            }
-
-            // If auth.js exposes a function to check auth status and redirect
-            if (window.authModule && typeof window.authModule.redirectToHomeIfLoggedIn === 'function') {
-                window.authModule.redirectToHomeIfLoggedIn();
-            }
-        });
-    </script>
+    <script type="module" src="auth.js"></script>
+    <script type="module" src="cart.js"></script>
 </body>
 </html>

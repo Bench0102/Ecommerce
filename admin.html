@@ -6,12 +6,7 @@
     <title>Admin - My eCommerce Store</title>
     <link rel="stylesheet" href="style.css">
     <!--
-        TODO: Add Firebase SDKs here (before your custom scripts)
-        You need at least:
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-        Ensure you use a version compatible with your code (v8.x.x used in JS files)
+        Firebase SDKs will now be imported as ES modules in the JavaScript files.
     -->
 </head>
 <body>
@@ -69,9 +64,8 @@
         <p>&copy; 2023 My eCommerce Store</p>
     </footer>
 
-    <script src="firebase-config.js"></script>
-    <script src="auth.js"></script>
-    <script src="cart.js"></script> <!-- Include cart.js -->
-    <script src="admin.js"></script>
+    <script type="module" src="auth.js"></script>
+    <script type="module" src="cart.js"></script>
+    <script type="module" src="admin.js"></script>
 </body>
 </html>

@@ -1,54 +1,39 @@
-// This script will handle the admin page functionality:
-// - Adding new products
-// - Listing existing products
-// - Editing products (Placeholder for now)
-// - Deleting products
+import { db, auth } from './firebase.js'; // Import Firestore and Auth instances
+import {
+    collection,
+    getDocs,
+    addDoc,
+    doc,
+    getDoc,
+    updateDoc,
+    deleteDoc,
+    serverTimestamp,
+    orderBy,
+    query
+} from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth'; // For admin page auth handling
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if Firebase is available
-    if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
-        console.error("Firebase or firebaseConfig is not defined. Make sure firebase-config.js is loaded first and configured.");
-        alert("Error: Firebase configuration is missing for the admin panel. Please contact support.");
-        return;
-    }
-
-    // Initialize Firebase if it hasn't been already
-    if (!firebase.apps.length) {
-        try {
-            firebase.initializeApp(firebaseConfig);
-            console.log("Firebase initialized in admin.js");
-        } catch (e) {
-            console.error("Error initializing Firebase in admin.js: ", e);
-            alert("Could not initialize Firebase for the admin panel. Please try again later.");
-            return;
-        }
-    } else {
-        firebase.app(); // if already initialized, use that one
-        console.log("Firebase already initialized, using existing app in admin.js");
-    }
-
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-
     const addProductForm = document.getElementById('add-product-form');
     const productNameInput = document.getElementById('product-name');
     const productPriceInput = document.getElementById('product-price');
     const productImageInput = document.getElementById('product-image');
     const productDescriptionInput = document.getElementById('product-description');
-    const formSubmitButton = addProductForm.querySelector('button[type="submit"]');
+    const formSubmitButton = addProductForm ? addProductForm.querySelector('button[type="submit"]') : null;
     const adminProductListElement = document.getElementById('admin-product-list');
+
     const adminContentSection = document.getElementById('admin-content-section');
     const adminLoginSection = document.getElementById('admin-login-section');
     const messageAreaAdmin = document.getElementById('message-area-admin');
 
-    let editingProductId = null; // Variable to store the ID of the product being edited
+    let editingProductId = null;
 
     function displayAdminMessage(text, type = 'info') {
         if (!messageAreaAdmin) {
-            // Fallback for critical messages if messageAreaAdmin is not found
             const targetElement = adminProductListElement || addProductForm || document.body;
+            if (!targetElement) return; // Should not happen if on admin page
             const tempMessage = document.createElement('div');
-            tempMessage.className = `${type}-message`;
+            tempMessage.className = `${type}-message global-admin-message`; // Add a class for potential global styling/removal
             tempMessage.textContent = text;
             targetElement.prepend(tempMessage);
             setTimeout(() => tempMessage.remove(), 5000);
@@ -56,39 +41,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         messageAreaAdmin.innerHTML = `<div class="${type}-message">${text}</div>`;
     }
+
     function clearAdminMessages() {
         if (messageAreaAdmin) messageAreaAdmin.innerHTML = '';
+        // Remove any globally prepended messages
+        document.querySelectorAll('.global-admin-message').forEach(el => el.remove());
     }
 
-
-    // Function to load and display products for admin
     async function loadAdminProducts() {
         if (!adminProductListElement) {
-            console.log("Admin product list element not found on this page.");
+            // console.log("Admin product list element not found on this page (admin.js).");
             return;
         }
         clearAdminMessages();
-        // Ensure user is authenticated and (notionally) an admin
-        // auth.js handles showing/hiding the admin content section
+
         const user = auth.currentUser;
-        if (!user) {
+        if (!user) { // This check is also in onAuthStateChanged, but good for direct calls
             adminProductListElement.innerHTML = '<div class="info-message">You must be logged in to manage products.</div>';
             return;
         }
-        // TODO: Add actual role check here. For now, any logged-in user is admin.
+        // TODO: Implement actual admin role check here if needed.
 
         adminProductListElement.innerHTML = '<div class="loading-message">Loading products...</div>';
         try {
-            const productsCollection = await db.collection('products').orderBy('name').get();
-            if (productsCollection.empty) {
+            const productsQuery = query(collection(db, 'products'), orderBy('name'));
+            const querySnapshot = await getDocs(productsQuery);
+
+            if (querySnapshot.empty) {
                 adminProductListElement.innerHTML = '<div class="info-message">No products found. Add some using the form above!</div>';
                 return;
             }
 
             let productsHtml = '';
-            productsCollection.forEach(doc => {
-                const product = doc.data();
-                const productId = doc.id;
+            querySnapshot.forEach(docSnapshot => { // Renamed doc to docSnapshot to avoid conflict
+                const product = docSnapshot.data();
+                const productId = docSnapshot.id;
                 productsHtml += `
                     <div class="admin-product-item" data-id="${productId}">
                         <div class="admin-product-item-info">
@@ -105,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             adminProductListElement.innerHTML = productsHtml;
 
-            // Add event listeners for edit and delete buttons
             document.querySelectorAll('.edit-button').forEach(button => {
                 button.addEventListener('click', handleEditProduct);
             });
@@ -114,28 +100,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         } catch (error) {
-            console.error("Error fetching admin products: ", error);
+            console.error("Error fetching admin products (admin.js): ", error);
             adminProductListElement.innerHTML = '<div class="error-message">Error loading products. Please try again later.</div>';
         }
     }
 
-    // Function to reset the product form and editing state
     function resetProductForm() {
-        addProductForm.reset();
+        if (addProductForm) addProductForm.reset();
         editingProductId = null;
-        formSubmitButton.textContent = 'Add Product';
-        formSubmitButton.classList.remove('button-warning');
-        formSubmitButton.classList.add('button-success');
+        if (formSubmitButton) {
+            formSubmitButton.textContent = 'Add Product';
+            formSubmitButton.classList.remove('button-warning');
+            formSubmitButton.classList.add('button-success');
+        }
 
-        // Remove cancel button if it exists
         const existingCancelButton = document.getElementById('cancel-edit-button');
         if (existingCancelButton) {
             existingCancelButton.remove();
         }
-        productNameInput.focus(); // Focus on the first field
+        if (productNameInput) productNameInput.focus();
     }
 
-    // Handle Add Product Form Submission (Create or Update)
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -145,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayAdminMessage("You must be logged in to modify products.", "error");
                 return;
             }
-            // TODO: Proper admin check
 
             const name = productNameInput.value.trim();
             const price = parseFloat(productPriceInput.value);
@@ -158,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             formSubmitButton.disabled = true;
-            const originalButtonText = formSubmitButton.textContent;
             formSubmitButton.textContent = editingProductId ? 'Updating...' : 'Adding...';
 
             const productData = {
@@ -166,77 +149,81 @@ document.addEventListener('DOMContentLoaded', () => {
                 price,
                 imageUrl,
                 description,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp() // For both add and update
+                updatedAt: serverTimestamp() // Firestore server timestamp
             };
 
             try {
                 if (editingProductId) {
-                    // Update existing product
-                    await db.collection('products').doc(editingProductId).update(productData);
+                    const productRef = doc(db, 'products', editingProductId);
+                    await updateDoc(productRef, productData);
                     displayAdminMessage("Product updated successfully!", "success");
                 } else {
-                    // Add new product
-                    productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    const newProductRef = await db.collection('products').add(productData);
-                    console.log("Product added with ID: ", newProductRef.id);
+                    productData.createdAt = serverTimestamp(); // Add createdAt for new products
+                    const productsCollectionRef = collection(db, 'products');
+                    const newDocRef = await addDoc(productsCollectionRef, productData);
+                    console.log("Product added with ID: ", newDocRef.id);
                     displayAdminMessage("Product added successfully!", "success");
                 }
                 resetProductForm();
-                loadAdminProducts(); // Refresh the list
+                loadAdminProducts();
             } catch (error) {
                 console.error(`Error ${editingProductId ? 'updating' : 'adding'} product: `, error);
                 displayAdminMessage(`Error ${editingProductId ? 'updating' : 'adding'} product: ${error.message}`, "error");
             } finally {
-                formSubmitButton.disabled = false;
-                // Text content is reset by resetProductForm on success, otherwise set it back
-                if (editingProductId && formSubmitButton.textContent === 'Updating...') {
-                     formSubmitButton.textContent = 'Update Product'; // In case of error during update
-                } else if (!editingProductId && formSubmitButton.textContent === 'Adding...') {
-                    formSubmitButton.textContent = 'Add Product'; // In case of error during add
+                if (formSubmitButton) { // Check if formSubmitButton still exists (not removed by DOM change)
+                    formSubmitButton.disabled = false;
+                     // Text content is reset by resetProductForm on success
+                    if (editingProductId && formSubmitButton.textContent === 'Updating...') {
+                         formSubmitButton.textContent = 'Update Product';
+                    } else if (!editingProductId && formSubmitButton.textContent === 'Adding...') {
+                        formSubmitButton.textContent = 'Add Product';
+                    }
                 }
             }
         });
     }
 
-    // Handle Edit Product Button Click
     async function handleEditProduct(event) {
         clearAdminMessages();
         const productId = event.target.dataset.id;
         try {
-            const productRef = db.collection('products').doc(productId);
-            const doc = await productRef.get();
+            const productRef = doc(db, 'products', productId);
+            const docSnapshot = await getDoc(productRef); // Renamed doc to docSnapshot
 
-            if (!doc.exists) {
+            if (!docSnapshot.exists()) {
                 displayAdminMessage("Product not found. It might have been deleted.", "error");
                 return;
             }
 
-            const product = doc.data();
+            const product = docSnapshot.data();
             productNameInput.value = product.name || '';
             productPriceInput.value = product.price || '';
             productImageInput.value = product.imageUrl || '';
             productDescriptionInput.value = product.description || '';
 
-            editingProductId = productId; // Set the editing state
+            editingProductId = productId;
 
             formSubmitButton.textContent = 'Update Product';
             formSubmitButton.classList.remove('button-success');
-            formSubmitButton.classList.add('button-warning'); // Change button color for update
+            formSubmitButton.classList.add('button-warning');
 
-            // Add a "Cancel Edit" button if it doesn't exist
             if (!document.getElementById('cancel-edit-button')) {
                 const cancelButton = document.createElement('button');
-                cancelButton.type = 'button'; // Important: prevent form submission
+                cancelButton.type = 'button';
                 cancelButton.id = 'cancel-edit-button';
                 cancelButton.textContent = 'Cancel Edit';
-                cancelButton.classList.add('button', 'button-light'); // Style as needed
+                cancelButton.classList.add('button', 'button-light');
                 cancelButton.style.marginLeft = '10px';
-                cancelButton.onclick = resetProductForm; // Reset form on cancel
-                formSubmitButton.parentNode.insertBefore(cancelButton, formSubmitButton.nextSibling);
+                cancelButton.onclick = resetProductForm;
+                if (formSubmitButton && formSubmitButton.parentNode) { // Ensure parentNode exists
+                    formSubmitButton.parentNode.insertBefore(cancelButton, formSubmitButton.nextSibling);
+                }
             }
 
-            productNameInput.focus(); // Focus on the first field
-            window.scrollTo({ top: addProductForm.offsetTop - 20, behavior: 'smooth' }); // Scroll to form
+            productNameInput.focus();
+            if (addProductForm) { // Check if addProductForm exists
+                 window.scrollTo({ top: addProductForm.offsetTop - 20, behavior: 'smooth' });
+            }
 
         } catch (error) {
             console.error("Error fetching product for edit: ", error);
@@ -244,15 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Handle Delete Product
     async function handleDeleteProduct(event) {
+        clearAdminMessages();
         const productId = event.target.dataset.id;
         const user = auth.currentUser;
         if (!user) {
             displayAdminMessage("You must be logged in to delete products.", "error");
             return;
         }
-        // TODO: Proper admin check
 
         if (confirm(`Are you sure you want to delete product ID: ${productId}? This action cannot be undone.`)) {
             const deleteButton = event.target;
@@ -260,62 +246,38 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteButton.textContent = 'Deleting...';
 
             try {
-                await db.collection('products').doc(productId).delete();
+                const productRef = doc(db, 'products', productId);
+                await deleteDoc(productRef);
                 console.log("Product deleted: ", productId);
                 displayAdminMessage("Product deleted successfully.", "success");
-                loadAdminProducts(); // Refresh the list
+                loadAdminProducts();
             } catch (error) {
                 console.error("Error deleting product: ", error);
                 displayAdminMessage(`Error deleting product: ${error.message}`, "error");
                 deleteButton.disabled = false;
                 deleteButton.textContent = 'Delete';
             }
-            // No finally needed here for button text if loadAdminProducts() re-renders it
-            // or if the item is removed. If error, it's reset above.
         }
     }
 
-    // Initial check: if on admin page and user is already logged in (handled by auth.js onAuthStateChanged)
-    // we might want to call loadAdminProducts.
-    // auth.js will call this if the user is an "admin"
-
-    // Expose loadAdminProducts so auth.js can call it after successful login verification on admin page
-    window.adminModule = {
-        loadAdminProducts
-    };
-
-    // If the admin content is visible (i.e., user is logged in and "admin"), load products.
-    // This is a fallback / initial load if auth.js hasn't triggered it yet or if page reloads.
-    const checkAuthAndLoad = () => {
-        const user = auth.currentUser;
-        // The display style check is a proxy for "admin access granted" by auth.js
-        if (user && adminContentSection && adminContentSection.style.display !== 'none') {
-            loadAdminProducts();
-        } else if (adminLoginSection && adminLoginSection.style.display !== 'none') {
-             if(adminProductListElement) adminProductListElement.innerHTML = '<p>Please log in to manage products.</p>';
-        }
-    };
-
-    // Listen for auth changes to reload products if necessary, e.g., after login on the admin page.
-    auth.onAuthStateChanged(user => {
+    // Handle Auth State for Admin Page
+    onAuthStateChanged(auth, (user) => {
         if (window.location.pathname.includes('admin.html')) { // Only run on admin page
             if (user) {
-                // Assuming auth.js handles showing/hiding adminContentSection
-                // If adminContentSection is visible, it means user is considered admin
-                if (adminContentSection && adminContentSection.style.display !== 'none') {
-                    loadAdminProducts();
-                }
+                // User is signed in - show admin content, load products
+                if (adminContentSection) adminContentSection.style.display = 'block';
+                if (adminLoginSection) adminLoginSection.style.display = 'none';
+                loadAdminProducts(); // Load products for the logged-in user
             } else {
-                // User logged out, clear list and show login prompt (auth.js also handles this)
-                if (adminProductListElement) adminProductListElement.innerHTML = '<p>Please log in to manage products.</p>';
+                // User is signed out - show login prompt
+                if (adminContentSection) adminContentSection.style.display = 'none';
+                if (adminLoginSection) adminLoginSection.style.display = 'block';
+                if (adminProductListElement) {
+                    adminProductListElement.innerHTML = '<div class="info-message">Please log in to manage products.</div>';
+                }
             }
         }
     });
 
-    // Initial call if on admin page and content section is already visible
-    // (e.g. user was already logged in)
-    if (window.location.pathname.includes('admin.html')) {
-       checkAuthAndLoad();
-    }
-
+    console.log("admin.js (v9) loaded.");
 });

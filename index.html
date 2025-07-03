@@ -6,12 +6,9 @@
     <title>My eCommerce Store</title>
     <link rel="stylesheet" href="style.css">
     <!--
-        TODO: Add Firebase SDKs here (before your custom scripts)
-        You need at least:
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-        Ensure you use a version compatible with your code (v8.x.x used in JS files)
+        Firebase SDKs will now be imported as ES modules in the JavaScript files.
+        Ensure your development environment supports ES modules (modern browsers do)
+        or use a bundler like Webpack, Parcel, or Vite for production.
     -->
 </head>
 <body>
@@ -40,10 +37,14 @@
         <p>&copy; 2023 My eCommerce Store</p>
     </footer>
 
-    <script src="firebase-config.js"></script>
-    <script src="auth.js"></script>
-    <script src="cart.js"></script> <!-- Include cart.js -->
-    <script src="app.js"></script>
+    <!--
+        JavaScript files are now treated as ES modules.
+        The new firebase.js will handle initialization and export necessary instances.
+        Other scripts will import from firebase.js and Firebase SDK modules.
+    -->
+    <script type="module" src="auth.js"></script>
+    <script type="module" src="cart.js"></script>
+    <script type="module" src="app.js"></script>
 
     <!-- Cart Modal Structure -->
     <div id="cart-modal" class="modal">
