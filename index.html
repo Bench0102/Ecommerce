@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My eCommerce Store</title>
+    <link rel="stylesheet" href="style.css">
+    <!--
+        TODO: Add Firebase SDKs here (before your custom scripts)
+        You need at least:
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+        Ensure you use a version compatible with your code (v8.x.x used in JS files)
+    -->
+</head>
+<body>
+    <header>
+        <h1>Awesome Products</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="admin.html">Admin</a>
+            <button id="login-button">Login</button>
+            <span id="user-status">Logged out</span>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Products</h2>
+        <div id="product-list">
+            <!-- Products will be loaded here by JavaScript -->
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 My eCommerce Store</p>
+    </footer>
+
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

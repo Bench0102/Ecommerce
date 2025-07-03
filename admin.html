@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - My eCommerce Store</title>
+    <link rel="stylesheet" href="style.css">
+    <!--
+        TODO: Add Firebase SDKs here (before your custom scripts)
+        You need at least:
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+        Ensure you use a version compatible with your code (v8.x.x used in JS files)
+    -->
+</head>
+<body>
+    <header>
+        <h1>Product Management</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="admin.html">Admin</a>
+            <button id="login-button">Login</button> <!-- Or show admin user info -->
+            <span id="user-status">Logged out</span>
+        </nav>
+    </header>
+
+    <main>
+        <section id="admin-login-section">
+            <h2>Admin Login</h2>
+            <p>Please login with an admin account to manage products.</p>
+            <!-- Login button will be handled by auth.js -->
+        </section>
+
+        <section id="admin-content-section" style="display: none;">
+            <h2>Add New Product</h2>
+            <form id="add-product-form">
+                <div>
+                    <label for="product-name">Name:</label>
+                    <input type="text" id="product-name" required>
+                </div>
+                <div>
+                    <label for="product-price">Price:</label>
+                    <input type="number" id="product-price" step="0.01" required>
+                </div>
+                <div>
+                    <label for="product-image">Image URL:</label>
+                    <input type="url" id="product-image" required>
+                </div>
+                <div>
+                    <label for="product-description">Description:</label>
+                    <textarea id="product-description"></textarea>
+                </div>
+                <button type="submit">Add Product</button>
+            </form>
+
+            <h2>Existing Products</h2>
+            <div id="admin-product-list">
+                <!-- Products will be listed here by admin.js -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 My eCommerce Store</p>
+    </footer>
+
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - My eCommerce Store</title>
+    <link rel="stylesheet" href="style.css">
+    <!--
+        TODO: Add Firebase SDKs here (before your custom scripts)
+        You need at least:
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+        (Firestore might not be strictly needed for login page, but auth.js uses it for firebase.app())
+        Ensure you use a version compatible with your code (v8.x.x used in JS files)
+    -->
+</head>
+<body>
+    <header>
+        <h1>Login</h1>
+        <nav>
+            <a href="index.html">Home</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="login-section">
+            <h2>Sign In</h2>
+            <p>Please sign in with your Google account to continue.</p>
+            <button id="google-signin-button">Sign In with Google</button>
+            <p id="login-status-message"></p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 My eCommerce Store</p>
+    </footer>
+
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Small script to redirect if user is already logged in,
+        // or to initialize login button functionality from auth.js
+        document.addEventListener('DOMContentLoaded', () => {
+            // auth.js should ideally handle this, but as a quick setup:
+            const googleSignInButton = document.getElementById('google-signin-button');
+            if (googleSignInButton && window.authModule && typeof window.authModule.signInWithGoogle === 'function') {
+                googleSignInButton.addEventListener('click', window.authModule.signInWithGoogle);
+            }
+
+            // If auth.js exposes a function to check auth status and redirect
+            if (window.authModule && typeof window.authModule.redirectToHomeIfLoggedIn === 'function') {
+                window.authModule.redirectToHomeIfLoggedIn();
+            }
+        });
+    </script>
+</body>
+</html>
