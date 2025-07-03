@@ -31,9 +31,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = firebase.auth();
 
     const addProductForm = document.getElementById('add-product-form');
+    const productNameInput = document.getElementById('product-name');
+    const productPriceInput = document.getElementById('product-price');
+    const productImageInput = document.getElementById('product-image');
+    const productDescriptionInput = document.getElementById('product-description');
+    const formSubmitButton = addProductForm.querySelector('button[type="submit"]');
     const adminProductListElement = document.getElementById('admin-product-list');
     const adminContentSection = document.getElementById('admin-content-section');
     const adminLoginSection = document.getElementById('admin-login-section');
+    const messageAreaAdmin = document.getElementById('message-area-admin');
+
+    let editingProductId = null; // Variable to store the ID of the product being edited
+
+    function displayAdminMessage(text, type = 'info') {
+        if (!messageAreaAdmin) {
+            // Fallback for critical messages if messageAreaAdmin is not found
+            const targetElement = adminProductListElement || addProductForm || document.body;
+            const tempMessage = document.createElement('div');
+            tempMessage.className = `${type}-message`;
+            tempMessage.textContent = text;
+            targetElement.prepend(tempMessage);
+            setTimeout(() => tempMessage.remove(), 5000);
+            return;
+        }
+        messageAreaAdmin.innerHTML = `<div class="${type}-message">${text}</div>`;
+    }
+    function clearAdminMessages() {
+        if (messageAreaAdmin) messageAreaAdmin.innerHTML = '';
+    }
+
 
     // Function to load and display products for admin
     async function loadAdminProducts() {
@@ -41,20 +67,21 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Admin product list element not found on this page.");
             return;
         }
+        clearAdminMessages();
         // Ensure user is authenticated and (notionally) an admin
         // auth.js handles showing/hiding the admin content section
         const user = auth.currentUser;
         if (!user) {
-            adminProductListElement.innerHTML = '<p>You must be logged in to manage products.</p>';
+            adminProductListElement.innerHTML = '<div class="info-message">You must be logged in to manage products.</div>';
             return;
         }
         // TODO: Add actual role check here. For now, any logged-in user is admin.
 
-        adminProductListElement.innerHTML = '<p>Loading products...</p>';
+        adminProductListElement.innerHTML = '<div class="loading-message">Loading products...</div>';
         try {
             const productsCollection = await db.collection('products').orderBy('name').get();
             if (productsCollection.empty) {
-                adminProductListElement.innerHTML = '<p>No products found. Add some using the form above!</p>';
+                adminProductListElement.innerHTML = '<div class="info-message">No products found. Add some using the form above!</div>';
                 return;
             }
 
@@ -64,14 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const productId = doc.id;
                 productsHtml += `
                     <div class="admin-product-item" data-id="${productId}">
-                        <p>
-                            <strong>${product.name || 'N/A'}</strong> -
-                            $${parseFloat(product.price || 0).toFixed(2)} <br>
-                            <small>ID: ${productId}</small>
-                        </p>
+                        <div class="admin-product-item-info">
+                            <p><strong>${product.name || 'N/A'}</strong></p>
+                            <p>$${parseFloat(product.price || 0).toFixed(2)}</p>
+                            <p><small>ID: ${productId}</small></p>
+                        </div>
                         <div class="actions">
-                            <button class="edit-button" data-id="${productId}">Edit</button>
-                            <button class="delete-button" data-id="${productId}">Delete</button>
+                            <button class="button button-warning edit-button" data-id="${productId}">Edit</button>
+                            <button class="button button-danger delete-button" data-id="${productId}">Delete</button>
                         </div>
                     </div>
                 `;
@@ -88,58 +115,133 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Error fetching admin products: ", error);
-            adminProductListElement.innerHTML = '<p>Error loading products. Please try again later.</p>';
+            adminProductListElement.innerHTML = '<div class="error-message">Error loading products. Please try again later.</div>';
         }
     }
 
-    // Handle Add Product Form Submission
+    // Function to reset the product form and editing state
+    function resetProductForm() {
+        addProductForm.reset();
+        editingProductId = null;
+        formSubmitButton.textContent = 'Add Product';
+        formSubmitButton.classList.remove('button-warning');
+        formSubmitButton.classList.add('button-success');
+
+        // Remove cancel button if it exists
+        const existingCancelButton = document.getElementById('cancel-edit-button');
+        if (existingCancelButton) {
+            existingCancelButton.remove();
+        }
+        productNameInput.focus(); // Focus on the first field
+    }
+
+    // Handle Add Product Form Submission (Create or Update)
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            clearAdminMessages();
             const user = auth.currentUser;
             if (!user) {
-                alert("You must be logged in to add products.");
+                displayAdminMessage("You must be logged in to modify products.", "error");
                 return;
             }
             // TODO: Proper admin check
 
-            const name = document.getElementById('product-name').value;
-            const price = parseFloat(document.getElementById('product-price').value);
-            const imageUrl = document.getElementById('product-image').value;
-            const description = document.getElementById('product-description').value;
+            const name = productNameInput.value.trim();
+            const price = parseFloat(productPriceInput.value);
+            const imageUrl = productImageInput.value.trim();
+            const description = productDescriptionInput.value.trim();
 
-            if (!name || isNaN(price) || !imageUrl) {
-                alert("Please fill in all required fields (Name, Price, Image URL).");
+            if (!name || isNaN(price) || price <= 0 || !imageUrl) {
+                displayAdminMessage("Please fill in all required fields with valid data (Name, valid Price, Image URL).", "error");
                 return;
             }
 
+            formSubmitButton.disabled = true;
+            const originalButtonText = formSubmitButton.textContent;
+            formSubmitButton.textContent = editingProductId ? 'Updating...' : 'Adding...';
+
+            const productData = {
+                name,
+                price,
+                imageUrl,
+                description,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp() // For both add and update
+            };
+
             try {
-                const newProductRef = await db.collection('products').add({
-                    name: name,
-                    price: price,
-                    imageUrl: imageUrl,
-                    description: description,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log("Product added with ID: ", newProductRef.id);
-                alert("Product added successfully!");
-                addProductForm.reset();
+                if (editingProductId) {
+                    // Update existing product
+                    await db.collection('products').doc(editingProductId).update(productData);
+                    displayAdminMessage("Product updated successfully!", "success");
+                } else {
+                    // Add new product
+                    productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    const newProductRef = await db.collection('products').add(productData);
+                    console.log("Product added with ID: ", newProductRef.id);
+                    displayAdminMessage("Product added successfully!", "success");
+                }
+                resetProductForm();
                 loadAdminProducts(); // Refresh the list
             } catch (error) {
-                console.error("Error adding product: ", error);
-                alert(`Error adding product: ${error.message}`);
+                console.error(`Error ${editingProductId ? 'updating' : 'adding'} product: `, error);
+                displayAdminMessage(`Error ${editingProductId ? 'updating' : 'adding'} product: ${error.message}`, "error");
+            } finally {
+                formSubmitButton.disabled = false;
+                // Text content is reset by resetProductForm on success, otherwise set it back
+                if (editingProductId && formSubmitButton.textContent === 'Updating...') {
+                     formSubmitButton.textContent = 'Update Product'; // In case of error during update
+                } else if (!editingProductId && formSubmitButton.textContent === 'Adding...') {
+                    formSubmitButton.textContent = 'Add Product'; // In case of error during add
+                }
             }
         });
     }
 
-    // Handle Edit Product (Placeholder)
-    function handleEditProduct(event) {
+    // Handle Edit Product Button Click
+    async function handleEditProduct(event) {
+        clearAdminMessages();
         const productId = event.target.dataset.id;
-        alert(`Edit functionality for product ID: ${productId} is not yet implemented.\n\nTo edit, you could:\n1. Fetch product data by ID.\n2. Populate the 'Add Product' form (or a separate edit form) with this data.\n3. Change the form's submit handler to update the existing document instead of creating a new one.`);
-        // Example:
-        // const productRef = db.collection('products').doc(productId);
-        // await productRef.update({ name: "New Name", price: 12.99 });
-        // loadAdminProducts(); // Refresh
+        try {
+            const productRef = db.collection('products').doc(productId);
+            const doc = await productRef.get();
+
+            if (!doc.exists) {
+                displayAdminMessage("Product not found. It might have been deleted.", "error");
+                return;
+            }
+
+            const product = doc.data();
+            productNameInput.value = product.name || '';
+            productPriceInput.value = product.price || '';
+            productImageInput.value = product.imageUrl || '';
+            productDescriptionInput.value = product.description || '';
+
+            editingProductId = productId; // Set the editing state
+
+            formSubmitButton.textContent = 'Update Product';
+            formSubmitButton.classList.remove('button-success');
+            formSubmitButton.classList.add('button-warning'); // Change button color for update
+
+            // Add a "Cancel Edit" button if it doesn't exist
+            if (!document.getElementById('cancel-edit-button')) {
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button'; // Important: prevent form submission
+                cancelButton.id = 'cancel-edit-button';
+                cancelButton.textContent = 'Cancel Edit';
+                cancelButton.classList.add('button', 'button-light'); // Style as needed
+                cancelButton.style.marginLeft = '10px';
+                cancelButton.onclick = resetProductForm; // Reset form on cancel
+                formSubmitButton.parentNode.insertBefore(cancelButton, formSubmitButton.nextSibling);
+            }
+
+            productNameInput.focus(); // Focus on the first field
+            window.scrollTo({ top: addProductForm.offsetTop - 20, behavior: 'smooth' }); // Scroll to form
+
+        } catch (error) {
+            console.error("Error fetching product for edit: ", error);
+            displayAdminMessage("Error fetching product details. Please try again.", "error");
+        }
     }
 
     // Handle Delete Product
@@ -147,21 +249,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const productId = event.target.dataset.id;
         const user = auth.currentUser;
         if (!user) {
-            alert("You must be logged in to delete products.");
+            displayAdminMessage("You must be logged in to delete products.", "error");
             return;
         }
         // TODO: Proper admin check
 
         if (confirm(`Are you sure you want to delete product ID: ${productId}? This action cannot be undone.`)) {
+            const deleteButton = event.target;
+            deleteButton.disabled = true;
+            deleteButton.textContent = 'Deleting...';
+
             try {
                 await db.collection('products').doc(productId).delete();
                 console.log("Product deleted: ", productId);
-                alert("Product deleted successfully.");
+                displayAdminMessage("Product deleted successfully.", "success");
                 loadAdminProducts(); // Refresh the list
             } catch (error) {
                 console.error("Error deleting product: ", error);
-                alert(`Error deleting product: ${error.message}`);
+                displayAdminMessage(`Error deleting product: ${error.message}`, "error");
+                deleteButton.disabled = false;
+                deleteButton.textContent = 'Delete';
             }
+            // No finally needed here for button text if loadAdminProducts() re-renders it
+            // or if the item is removed. If error, it's reset above.
         }
     }
 

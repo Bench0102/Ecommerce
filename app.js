@@ -27,6 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const db = firebase.firestore();
     const productListElement = document.getElementById('product-list');
+    const messageArea = document.getElementById('message-area-home'); // For displaying messages
+
+    function displayMessage(text, type = 'info') {
+        if (!messageArea) return;
+        messageArea.innerHTML = `<div class="${type}-message">${text}</div>`;
+    }
+    function clearMessages() {
+        if (messageArea) messageArea.innerHTML = '';
+    }
 
     // Function to fetch and display products
     async function fetchAndDisplayProducts() {
@@ -34,12 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Product list element not found on this page.");
             return;
         }
-        productListElement.innerHTML = '<p>Loading products...</p>'; // Show loading state
+        clearMessages();
+        productListElement.innerHTML = '<div class="loading-message">Loading products...</div>';
 
         try {
             const productsCollection = await db.collection('products').get();
             if (productsCollection.empty) {
-                productListElement.innerHTML = '<p>No products found.</p>';
+                productListElement.innerHTML = '<div class="info-message">No products found. Check back later!</div>';
                 return;
             }
 
@@ -49,52 +59,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 const productId = doc.id;
                 productsHtml += `
                     <div class="product-card" data-id="${productId}">
-                        <img src="${product.imageUrl || 'https://via.placeholder.com/200'}" alt="${product.name}">
-                        <h3>${product.name || 'Unnamed Product'}</h3>
-                        <p class="price">$${parseFloat(product.price || 0).toFixed(2)}</p>
-                        <p class="description">${product.description || 'No description available.'}</p>
-                        <button class="buy-now-button" data-product-id="${productId}">Buy Now</button>
+                        <img src="${product.imageUrl || 'https://via.placeholder.com/220/CCCCCC/4F4F4F?Text=No+Image'}" alt="${product.name || 'Product Image'}">
+                        <div class="product-card-content">
+                            <h3>${product.name || 'Unnamed Product'}</h3>
+                            <p class="description">${product.description || 'No description available.'}</p>
+                            <p class="price">$${parseFloat(product.price || 0).toFixed(2)}</p>
+                            <button class="button button-primary action-button add-to-cart-button" data-product-id="${productId}" data-product-name="${product.name || 'Unnamed Product'}" data-product-price="${parseFloat(product.price || 0).toFixed(2)}" data-product-image="${product.imageUrl || 'https://via.placeholder.com/220/CCCCCC/4F4F4F?Text=No+Image'}">Add to Cart</button>
+                        </div>
                     </div>
                 `;
             });
             productListElement.innerHTML = productsHtml;
 
-            // Add event listeners to "Buy Now" buttons
-            document.querySelectorAll('.buy-now-button').forEach(button => {
-                button.addEventListener('click', handleBuyNow);
+            // Add event listeners to "Add to Cart" buttons
+            document.querySelectorAll('.add-to-cart-button').forEach(button => {
+                button.addEventListener('click', handleAddToCart);
             });
 
         } catch (error) {
             console.error("Error fetching products: ", error);
-            productListElement.innerHTML = '<p>Error loading products. Please try again later.</p>';
+            productListElement.innerHTML = '<div class="error-message">Error loading products. Please try again later.</div>';
         }
     }
 
-    // Handle "Buy Now" button click
-    async function handleBuyNow(event) {
-        const productId = event.target.dataset.productId;
+    // Handle "Add to Cart" button click
+    function handleAddToCart(event) {
+        const button = event.target;
+        const productId = button.dataset.productId;
+        const productName = button.dataset.productName;
+        const productPrice = parseFloat(button.dataset.productPrice);
+        const productImage = button.dataset.productImage;
+
         if (!productId) {
-            console.error("Product ID missing from Buy Now button.");
-            alert("Could not process purchase: Product ID is missing.");
+            console.error("Product ID missing from Add to Cart button.");
+            displayMessage("Could not add to cart: Product ID is missing.", "error");
             return;
         }
 
-        // 1. Check if user is logged in (using auth.js functionality if available)
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            alert("Please log in to purchase items.");
-            // Optionally redirect to login page or show login modal
-            // For now, we assume auth.js handles the login button and user status display
-            // If login.html is used, redirect: window.location.href = 'login.html';
-            return;
+        if (window.cartModule && typeof window.cartModule.addItemToCart === 'function') {
+            window.cartModule.addItemToCart({
+                id: productId,
+                name: productName,
+                price: productPrice,
+                imageUrl: productImage,
+                quantity: 1
+            });
+            displayMessage(`"${productName}" added to your cart!`, "success");
+            // Optionally, briefly change button text or show animation
+            button.textContent = 'Added!';
+            button.classList.remove('button-primary');
+            button.classList.add('button-success');
+            setTimeout(() => {
+                button.textContent = 'Add to Cart';
+                button.classList.remove('button-success');
+                button.classList.add('button-primary');
+            }, 1500);
+        } else {
+            console.error("Cart module or addItemToCart function is not available.");
+            displayMessage("Error: Could not add item to cart. Cart system unavailable.", "error");
         }
 
-        // 2. Call backend to create Stripe Checkout session
-        // This requires a backend endpoint.
-        // For now, we'll simulate this and log to console.
-        console.log(`User ${user.uid} wants to buy product ${productId}.`);
-        alert(`Simulating Stripe Checkout for product ID: ${productId}\nBackend integration needed.`);
-
+        // OLD "Buy Now" logic (will be removed or adapted for a cart checkout later)
+        // const user = firebase.auth().currentUser;
+        // if (!user) {
+        //     displayMessage("Please log in to purchase items.", "info");
+        //     // Optionally redirect to login page or show login modal
+        //     // If login.html is used, redirect: window.location.href = 'login.html';
+        //     return;
+        // }
+        // console.log(`User ${user.uid} wants to buy product ${productId}.`);
+        // alert(`Simulating Stripe Checkout for product ID: ${productId}\nBackend integration needed.`);
         // Example of what you'd do if you had a backend:
         /*
         try {

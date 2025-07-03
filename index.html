@@ -20,13 +20,17 @@
         <nav>
             <a href="index.html">Home</a>
             <a href="admin.html">Admin</a>
-            <button id="login-button">Login</button>
+            <button id="cart-button-header" class="button button-light">
+                Cart <span id="cart-count" style="display: none;">0</span>
+            </button>
+            <button id="login-button-header" class="button button-primary">Login</button>
             <span id="user-status">Logged out</span>
         </nav>
     </header>
 
     <main>
         <h2>Products</h2>
+        <div id="message-area-home" class="message-area"></div>
         <div id="product-list">
             <!-- Products will be loaded here by JavaScript -->
         </div>
@@ -38,6 +42,25 @@
 
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
+    <script src="cart.js"></script> <!-- Include cart.js -->
     <script src="app.js"></script>
+
+    <!-- Cart Modal Structure -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Your Shopping Cart</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <div id="cart-items-list">
+                <!-- Cart items will be rendered here by cart.js -->
+            </div>
+            <div class="empty-cart-message" style="display: none;">
+                <p>Your cart is currently empty.</p>
+            </div>
+            <div id="cart-total">Total: $0.00</div>
+            <button id="cart-checkout-button" class="button button-success">Proceed to Checkout</button>
+        </div>
+    </div>
 </body>
 </html>

@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const auth = firebase.auth();
-    const loginButton = document.getElementById('login-button'); // In header
+    const loginButton = document.getElementById('login-button-header'); // In header - updated ID if changed
     const googleSignInButton = document.getElementById('google-signin-button'); // On login.html
     const userStatusElement = document.getElementById('user-status'); // In header
     const loginStatusMessageElement = document.getElementById('login-status-message'); // On login.html
@@ -46,20 +46,32 @@ document.addEventListener('DOMContentLoaded', () => {
             // const token = credential.accessToken;
             // const user = result.user;
             console.log("Signed in user:", result.user.displayName);
-            if (loginStatusMessageElement) loginStatusMessageElement.textContent = `Welcome, ${result.user.displayName}! Redirecting...`;
+            if (loginStatusMessageElement) {
+                loginStatusMessageElement.textContent = `Welcome, ${result.user.displayName}! Redirecting...`;
+                loginStatusMessageElement.className = 'success'; // Use new class
+            }
 
             // Redirect to homepage after login, or stay if on admin and admin conditions met
-            if (window.location.pathname.includes('login.html')) {
-                window.location.href = 'index.html';
-            }
+            // Add a small delay for the message to be visible
+            setTimeout(() => {
+                if (window.location.pathname.includes('login.html')) {
+                    window.location.href = 'index.html';
+                }
+            }, 1500);
+
         } catch (error) {
             console.error("Error during Google Sign-In:", error);
             if (loginStatusMessageElement) {
                 loginStatusMessageElement.textContent = `Login failed: ${error.message}`;
+                loginStatusMessageElement.className = 'error'; // Use new class
             } else if (userStatusElement) {
-                userStatusElement.textContent = `Login failed.`;
+                userStatusElement.textContent = `Login failed.`; // This is in header, not login page
             }
-            alert(`Login Error: ${error.code} - ${error.message}`);
+            // Consider replacing alert with a more integrated UI message if possible
+            // For now, alert remains for immediate feedback if other elements aren't present
+            if (!loginStatusMessageElement) { // Only alert if no specific message element
+                 alert(`Login Error: ${error.code} - ${error.message}`);
+            }
         }
     }
 
@@ -92,11 +104,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (loginButton) {
                 loginButton.textContent = 'Logout';
+                loginButton.className = 'button button-secondary'; // Update class
                 loginButton.onclick = signOut; // Change action to sign out
             }
             if (googleSignInButton) { // On login.html, if user gets there while logged in
                 googleSignInButton.style.display = 'none';
-                if (loginStatusMessageElement) loginStatusMessageElement.textContent = `You are already logged in as ${user.displayName}.`;
+                if (loginStatusMessageElement) {
+                    loginStatusMessageElement.textContent = `You are already logged in as ${user.displayName}. Redirecting...`;
+                    loginStatusMessageElement.className = 'info';
+                    // Optionally, trigger redirect sooner if already logged in on login page
+                    setTimeout(() => {
+                         if (window.location.pathname.includes('login.html')) {
+                            window.location.href = 'index.html';
+                        }
+                    }, 1000);
+                }
             }
 
             // Admin page specific logic
@@ -118,20 +140,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (loginButton) {
                 loginButton.textContent = 'Login';
+                loginButton.className = 'button button-primary'; // Update class
                 loginButton.onclick = () => { // Change action to go to login page or trigger sign-in
-                    // If a dedicated login page exists:
-                    if (window.location.pathname !== '/login.html') {
-                         window.location.href = 'login.html';
+                    if (window.location.pathname.includes('login.html')) {
+                        signInWithGoogle(); // If on login page, attempt sign-in directly
                     } else {
-                        // If on login.html itself, or if we want a popup directly
-                        signInWithGoogle();
+                        window.location.href = 'login.html'; // Otherwise, redirect to login page
                     }
                 };
             }
             if (googleSignInButton) { // On login.html
                 googleSignInButton.style.display = 'block';
                 googleSignInButton.onclick = signInWithGoogle;
-                if (loginStatusMessageElement) loginStatusMessageElement.textContent = 'Please sign in to continue.';
+                if (loginStatusMessageElement) {
+                    loginStatusMessageElement.textContent = 'Please sign in with Google to continue.';
+                    loginStatusMessageElement.className = 'info'; // Default message class
+                }
             }
 
             // Admin page specific logic

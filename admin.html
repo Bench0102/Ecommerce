@@ -20,7 +20,10 @@
         <nav>
             <a href="index.html">Home</a>
             <a href="admin.html">Admin</a>
-            <button id="login-button">Login</button> <!-- Or show admin user info -->
+            <button id="cart-button-header" class="button button-light">
+                Cart <span id="cart-count" style="display: none;">0</span>
+            </button>
+            <button id="login-button-header" class="button button-primary">Login</button> <!-- Or show admin user info -->
             <span id="user-status">Logged out</span>
         </nav>
     </header>
@@ -34,6 +37,7 @@
 
         <section id="admin-content-section" style="display: none;">
             <h2>Add New Product</h2>
+            <div id="message-area-admin" class="message-area"></div>
             <form id="add-product-form">
                 <div>
                     <label for="product-name">Name:</label>
@@ -51,7 +55,7 @@
                     <label for="product-description">Description:</label>
                     <textarea id="product-description"></textarea>
                 </div>
-                <button type="submit">Add Product</button>
+                <button type="submit" class="button button-success">Add Product</button>
             </form>
 
             <h2>Existing Products</h2>
@@ -67,6 +71,7 @@
 
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
+    <script src="cart.js"></script> <!-- Include cart.js -->
     <script src="admin.js"></script>
 </body>
 </html>

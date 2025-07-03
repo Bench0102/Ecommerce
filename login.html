@@ -27,8 +27,8 @@
         <section id="login-section">
             <h2>Sign In</h2>
             <p>Please sign in with your Google account to continue.</p>
-            <button id="google-signin-button">Sign In with Google</button>
-            <p id="login-status-message"></p>
+            <button id="google-signin-button" class="button button-primary">Sign In with Google</button>
+            <p id="login-status-message"></p> <!-- This will be styled by JS based on success/error -->
         </section>
     </main>
 
@@ -38,6 +38,7 @@
 
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
+    <script src="cart.js"></script> <!-- Include cart.js for header consistency -->
     <script>
         // Small script to redirect if user is already logged in,
         // or to initialize login button functionality from auth.js
