@@ -1,12 +1,12 @@
 // TODO: Add your Firebase project configuration here
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID" // Optional, for Google Analytics
+  apiKey: "AIzaSyDTAjEgyFixXk8yFLpWqwXTnTZPeqlWN-Y",
+  authDomain: "ecommerce-70f46.firebaseapp.com",
+  projectId: "ecommerce-70f46",
+  storageBucket: "ecommerce-70f46.firebasestorage.app",
+  messagingSenderId: "819563520513",
+  appId: "1:819563520513:web:2d6eb65ab863806153d600",
+  measurementId: "G-DJJLK89T9C"
 };
 
 // Initialize Firebase (this should ideally be done once)
